@@ -22,6 +22,10 @@
         <property name="applicationEvents" ref="applicationEvents"/>
     </bean>
 
+    <bean id="handlingReportController" class="se.citerus.dddsample.interfaces.handling.HandlingReportController">
+        <property name="applicationEvents" ref="applicationEvents"/>
+    </bean>
+
 
     <!-- File upload directory scanner -->
 
