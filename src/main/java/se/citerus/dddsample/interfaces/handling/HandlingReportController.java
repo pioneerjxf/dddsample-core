@@ -5,10 +5,10 @@ import com.aggregator.HandlingReportErrors;
 import com.aggregator.HandlingReportErrors_Exception;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import se.citerus.dddsample.application.ApplicationEvents;
 import se.citerus.dddsample.domain.model.cargo.TrackingId;
 import se.citerus.dddsample.domain.model.handling.HandlingEvent;
@@ -33,7 +33,7 @@ import static se.citerus.dddsample.interfaces.handling.HandlingReportParser.pars
  * with the informtion to the handling event registration system for proper registration.
  *  
  */
-@Controller
+@RestController
 @RequestMapping("/handling")
 public class HandlingReportController {
 
@@ -70,11 +70,11 @@ public class HandlingReportController {
     private static final SimpleDateFormat TIME_PATTERN = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 
     @RequestMapping(value = "/submit", method = RequestMethod.POST)
-    public void submitReportV2(@RequestParam(value = "time") String time,
+    public String submitReportV2(@RequestParam(value = "time") String time,
                                @RequestParam(value = "trackingIds") List<String> trackingIds,
                                @RequestParam(value = "type") String typeInput,
                                @RequestParam(value = "unLocode") String unLocodeInput,
-                               @RequestParam(value = "voyageNumber") String voyageNumberInput) throws ParseException {
+                               @RequestParam(value = "voyageNumber") String voyageNumberInput) throws ParseException, HandlingReportErrors_Exception {
         final List<String> errors = new ArrayList<String>();
 
         final Date completionTime = TIME_PATTERN.parse(time);
@@ -82,7 +82,23 @@ public class HandlingReportController {
         final HandlingEvent.Type type = parseEventType(typeInput, errors);
         final UnLocode unLocode = parseUnLocode(unLocodeInput, errors);
 
-        return;
+        for (String trackingIdStr : trackingIds) {
+            final TrackingId trackingId = parseTrackingId(trackingIdStr, errors);
+
+            if (errors.isEmpty()) {
+                final Date registrationTime = new Date();
+                final HandlingEventRegistrationAttempt attempt = new HandlingEventRegistrationAttempt(
+                        registrationTime, completionTime, trackingId, voyageNumber, type, unLocode
+                );
+
+                applicationEvents.receivedHandlingEventRegistrationAttempt(attempt);
+            } else {
+                logger.error("Parse error in handling report: " + errors);
+                final HandlingReportErrors faultInfo = new HandlingReportErrors();
+                throw new HandlingReportErrors_Exception(errors.toString(), faultInfo);
+            }
+        }
+        return "success";
     }
 
 

@@ -23,7 +23,9 @@ public class HandlingEventRegistrationAttemptConsumer implements MessageListener
   public void onMessage(final Message message) {
     try {
       final ObjectMessage om = (ObjectMessage) message;
-      HandlingEventRegistrationAttempt attempt = (HandlingEventRegistrationAttempt) om.getObject();
+      //String jsonString = (String)om.getObject();
+      //HandlingEventRegistrationAttempt attempt = JSON.parseObject(jsonString, HandlingEventRegistrationAttempt.class);
+      HandlingEventRegistrationAttempt attempt = (HandlingEventRegistrationAttempt)om.getObject();
       handlingEventService.registerHandlingEvent(
         attempt.getCompletionTime(),
         attempt.getTrackingId(),
